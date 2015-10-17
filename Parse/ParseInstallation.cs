@@ -220,13 +220,13 @@ namespace Parse {
     internal override Task SaveAsync(Task toAwait, CancellationToken cancellationToken) {
       Task platformHookTask = null;
       if (CurrentInstallationController.IsCurrent(this)) {
-        SetIfDifferent("deviceType", ParseClient.PlatformHooks.DeviceType);
-        SetIfDifferent("timeZone", ParseClient.PlatformHooks.DeviceTimeZone);
-        SetIfDifferent("localeIdentifier", GetLocaleIdentifier());
-        SetIfDifferent("parseVersion", GetParseVersion().ToString());
-        SetIfDifferent("appVersion", ParseClient.PlatformHooks.AppBuildVersion);
-        SetIfDifferent("appIdentifier", ParseClient.PlatformHooks.AppIdentifier);
-        SetIfDifferent("appName", ParseClient.PlatformHooks.AppName);
+        ForceSetIfDifferent("deviceType", ParseClient.PlatformHooks.DeviceType);
+        ForceSetIfDifferent("timeZone", ParseClient.PlatformHooks.DeviceTimeZone);
+        ForceSetIfDifferent("localeIdentifier", GetLocaleIdentifier());
+        ForceSetIfDifferent("parseVersion", GetParseVersion().ToString());
+        ForceSetIfDifferent("appVersion", ParseClient.PlatformHooks.AppBuildVersion);
+        ForceSetIfDifferent("appIdentifier", ParseClient.PlatformHooks.AppIdentifier);
+        ForceSetIfDifferent("appName", ParseClient.PlatformHooks.AppName);
 
         // TODO (hallucinogen): this probably should have been a controller.
         platformHookTask = ParseClient.PlatformHooks.ExecuteParseInstallationSaveHookAsync(this);
@@ -241,6 +241,24 @@ namespace Parse {
         }
         return CurrentInstallationController.SetAsync(this, cancellationToken);
       }).Unwrap();
+    }
+
+    /// <summary>
+    /// We need this to set a key irrespective of the 'IsKeyMutable' function.
+    /// </summary>
+    /// <param name="key">Key to update</param>
+    /// <param name="value">New value to set</param>
+    private void ForceSetIfDifferent(string key, object value) {
+      lock (mutex) {
+        // Check if the value has changed.
+        object currentValue = this[key];
+        if (Object.Equals(currentValue, value)) {
+          // No change in value.
+          return;
+        }
+
+        PerformOperation(key, new ParseSetOperation(value));
+      }
     }
 
     /// <summary>
