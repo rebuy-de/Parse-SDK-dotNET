@@ -28,13 +28,6 @@ namespace Parse {
   /// </remarks>
   public class ParseObject : IEnumerable<KeyValuePair<string, object>>, INotifyPropertyChanged {
     private static readonly string AutoClassName = "_Automatic";
-    private static readonly IDictionary<Tuple<Type, string>, string>
-        propertyFieldNames = new Dictionary<Tuple<Type, string>, string>();
-    private static readonly IDictionary<string, Tuple<Func<ParseObject>, Type>>
-        objectFactories = new Dictionary<string, Tuple<Func<ParseObject>, Type>>();
-    private static readonly IDictionary<Type, IDictionary<string, string>>
-      propertyMappings = new Dictionary<Type, IDictionary<string, string>>();
-    private static readonly ReaderWriterLockSlim propertyMappingsLock = new ReaderWriterLockSlim();
 
     internal readonly object mutex = new object();
 
@@ -72,6 +65,12 @@ namespace Parse {
       }
     }
 
+    internal static IObjectSubclassingController SubclassingController {
+      get {
+        return ParseCorePlugins.Instance.SubclassingController;
+      }
+    }
+
     #region ParseObject Creation
 
     /// <summary>
@@ -103,10 +102,10 @@ namespace Parse {
         throw new ArgumentException("You must specify a Parse class name when creating a new ParseObject.");
       }
       if (AutoClassName.Equals(className)) {
-        className = GetClassName(this.GetType());
+        className = SubclassingController.GetClassName(GetType());
       }
       // If this is supposed to be created by a factory but wasn't, throw an exception
-      if (this.GetType().Equals(typeof(ParseObject)) && objectFactories.ContainsKey(className)) {
+      if (!SubclassingController.IsTypeValid(className, GetType())) {
         throw new ArgumentException(
           "You must create this type of ParseObject using ParseObject.Create() or the proper subclass.");
       }
@@ -133,7 +132,7 @@ namespace Parse {
     /// <param name="className">The class of object to create.</param>
     /// <returns>A new ParseObject for the given class name.</returns>
     public static ParseObject Create(string className) {
-      return GetFactory(className)();
+      return SubclassingController.Instantiate(className);
     }
 
     /// <summary>
@@ -148,7 +147,7 @@ namespace Parse {
     public static ParseObject CreateWithoutData(string className, string objectId) {
       isCreatingPointer.Value = true;
       try {
-        var result = GetFactory(className)();
+        var result = SubclassingController.Instantiate(className);
         result.ObjectId = objectId;
         result.IsDirty = false;
         if (result.IsDirty) {
@@ -166,7 +165,7 @@ namespace Parse {
     /// </summary>
     /// <returns>A new ParseObject for the given class name.</returns>
     public static T Create<T>() where T : ParseObject {
-      return (T)Create(GetClassName(typeof(T)));
+      return (T)SubclassingController.Instantiate(SubclassingController.GetClassName(typeof(T)));
     }
 
     /// <summary>
@@ -178,7 +177,7 @@ namespace Parse {
     /// <param name="objectId">The object id for the referenced object.</param>
     /// <returns>A ParseObject without data.</returns>
     public static T CreateWithoutData<T>(string objectId) where T : ParseObject {
-      return (T)CreateWithoutData(GetClassName(typeof(T)), objectId);
+      return (T)CreateWithoutData(SubclassingController.GetClassName(typeof(T)), objectId);
     }
 
     // TODO (hallucinogen): add unit test
@@ -193,21 +192,9 @@ namespace Parse {
 
     #endregion
 
-    private static string GetFieldForPropertyName(Type type, string propertyName) {
-      var key = new Tuple<Type, string>(type, propertyName);
-      string fieldName;
-      if (propertyFieldNames.TryGetValue(key, out fieldName)) {
-        return fieldName;
-      }
-      var prop = type.GetProperty(propertyName);
-      if (prop == null) {
-        throw new ArgumentException(propertyName + " property does not exist on type " + type);
-      }
-      var attr = prop.GetCustomAttribute<ParseFieldNameAttribute>();
-      if (attr == null) {
-        throw new ArgumentException(propertyName + " does not have a ParseFieldName attribute specified.");
-      }
-      propertyFieldNames[key] = fieldName = attr.FieldName;
+    private static string GetFieldForPropertyName(String className, string propertyName) {
+      String fieldName = null;
+      SubclassingController.GetPropertyMappings(className).TryGetValue(propertyName, out fieldName);
       return fieldName;
     }
 
@@ -224,7 +211,7 @@ namespace Parse {
  string propertyName
 #endif
 ) {
-      this[GetFieldForPropertyName(GetType(), propertyName)] = value;
+      this[GetFieldForPropertyName(ClassName, propertyName)] = value;
     }
 
     /// <summary>
@@ -240,7 +227,7 @@ namespace Parse {
 string propertyName
 #endif
 ) where T : ParseObject {
-      return GetRelation<T>(GetFieldForPropertyName(GetType(), propertyName));
+      return GetRelation<T>(GetFieldForPropertyName(ClassName, propertyName));
     }
 
     /// <summary>
@@ -274,7 +261,7 @@ string propertyName
 #endif
 ) {
       T result;
-      if (TryGetValue<T>(GetFieldForPropertyName(GetType(), propertyName), out result)) {
+      if (TryGetValue<T>(GetFieldForPropertyName(ClassName, propertyName), out result)) {
         return result;
       }
       return defaultValue;
@@ -286,28 +273,6 @@ string propertyName
     internal virtual void SetDefaultValues() {
     }
 
-    internal static string GetClassName(Type t) {
-      var attr = t.GetTypeInfo().GetCustomAttribute<ParseClassNameAttribute>();
-      if (attr == null) {
-        throw new ArgumentException("No ParseClassName attribute specified on the given subclass.");
-      }
-      return attr.ClassName;
-    }
-
-    /// <summary>
-    /// Gets the appropriate factory for the given class name. If there is no factory for the class,
-    /// a factory that produces a regular ParseObject will be created.
-    /// </summary>
-    /// <param name="className">The class name for the ParseObjects the factory will create.</param>
-    /// <returns></returns>
-    private static Func<ParseObject> GetFactory(string className) {
-      Tuple<Func<ParseObject>, Type> result;
-      if (!objectFactories.TryGetValue(className, out result)) {
-        return () => new ParseObject(className);
-      }
-      return result.Item1;
-    }
-
     /// <summary>
     /// Registers a custom subclass type with the Parse SDK, enabling strong-typing of those ParseObjects whenever
     /// they appear. Subclasses must specify the ParseClassName attribute, have a default constructor, and properties
@@ -315,36 +280,11 @@ string propertyName
     /// </summary>
     /// <typeparam name="T">The ParseObject subclass type to register.</typeparam>
     public static void RegisterSubclass<T>() where T : ParseObject, new() {
-      var className = GetClassName(typeof(T));
-      if (className == null) {
-        throw new ArgumentException("No ParseClassName attribute defined for " + typeof(T));
-      }
-
-      Tuple<Func<ParseObject>, Type> oldValue;
-      if (objectFactories.TryGetValue(className, out oldValue)) {
-        if (typeof(T).GetTypeInfo().IsAssignableFrom(oldValue.Item2.GetTypeInfo())) {
-          // The old class was already more descendant than the new subclass type. No-op.
-          return;
-        }
-        if (className.Equals(GetClassName(typeof(ParseUser)))) {
-          ParseUser.ClearInMemoryUser();
-        } else if (className.Equals("_Installation")) {
-          ParseInstallation.ClearInMemoryInstallation();
-        }
-      }
-      objectFactories[className] = new Tuple<Func<ParseObject>, Type>(() => new T(), typeof(T));
+      SubclassingController.RegisterSubclass(typeof(T));
     }
 
-    internal static void UnregisterSubclass(string className) {
-      objectFactories.Remove(className);
-    }
-
-    internal static Type GetType(string className) {
-      Tuple<Func<ParseObject>, Type> result;
-      if (!objectFactories.TryGetValue(className, out result)) {
-        return typeof(ParseObject);
-      }
-      return result.Item2;
+    internal static void UnregisterSubclass<T>() where T: ParseObject, new() {
+      SubclassingController.UnregisterSubclass(typeof(T));
     }
 
     /// <summary>
@@ -1682,54 +1622,11 @@ string propertyName
       // experience anyway, especially with LINQ integration, since you'll get
       // strongly-typed queries and compile-time checking of property names and
       // types.
-      if (GetType(className) != typeof(ParseObject)) {
+      if (SubclassingController.GetType(className) != null) {
         throw new ArgumentException(
           "Use the class-specific query properties for class " + className, "className");
       }
       return new ParseQuery<ParseObject>(className);
-    }
-
-    /// <summary>
-    /// Gets the set of fieldName->propertyName mappings for the current class.
-    /// </summary>
-    internal IDictionary<string, string> PropertyMappings {
-      get {
-        IDictionary<string, string> mappings;
-        // Try to get it with only a read lock
-        propertyMappingsLock.EnterReadLock();
-        try {
-          if (propertyMappings.TryGetValue(this.GetType(), out mappings)) {
-            return mappings;
-          }
-        } finally {
-          propertyMappingsLock.ExitReadLock();
-        }
-
-        propertyMappingsLock.EnterUpgradeableReadLock();
-        try {
-          // Now that we have an upgradeable read lock, determine whether we need to
-          // upgrade. If another thread already beat us to setting this value, just
-          // move on without acquiring the write lock.
-          if (!propertyMappings.TryGetValue(this.GetType(), out mappings)) {
-            mappings = new Dictionary<string, string>();
-            foreach (var prop in this.GetType().GetProperties()) {
-              var attr = prop.GetCustomAttribute<ParseFieldNameAttribute>(true);
-              if (attr != null) {
-                mappings[attr.FieldName] = prop.Name;
-              }
-            }
-            propertyMappingsLock.EnterWriteLock();
-            try {
-              propertyMappings[this.GetType()] = mappings;
-            } finally {
-              propertyMappingsLock.ExitWriteLock();
-            }
-          }
-          return mappings;
-        } finally {
-          propertyMappingsLock.ExitUpgradeableReadLock();
-        }
-      }
     }
 
     /// <summary>
@@ -1738,13 +1635,21 @@ string propertyName
     /// properties (e.g. this happens when we recalculate all estimated data from scratch)
     /// </summary>
     protected void OnFieldsChanged(IEnumerable<string> fieldNames) {
-      var mappings = PropertyMappings;
-      fieldNames = fieldNames ?? mappings.Keys;
-      foreach (var fieldName in fieldNames) {
-        string propName;
-        if (mappings.TryGetValue(fieldName, out propName)) {
-          OnPropertyChanged(propName);
-        }
+      var mappings = SubclassingController.GetPropertyMappings(ClassName);
+      IEnumerable<String> properties;
+
+      if (fieldNames != null && mappings != null) {
+        properties = from m in mappings
+                     join f in fieldNames on m.Value equals f
+                     select m.Key;
+      } else if (mappings != null) {
+        properties = mappings.Keys;
+      } else {
+        properties = Enumerable.Empty<String>();
+      }
+
+      foreach (var property in properties) {
+        OnPropertyChanged(property);
       }
       OnPropertyChanged("Item[]");
     }
