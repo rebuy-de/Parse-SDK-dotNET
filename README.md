@@ -1,5 +1,5 @@
 # Parse SDK for .NET
-![][appveyor-link]
+[![AppVeyor Build][appveyor-svg]][appveyor-link]
 [![Coverage Status][coverall-svg]][coverall-link]
 [![Nuget][nuget-svg]][nuget-link]
 [![License][license-svg]][license-link]
@@ -11,7 +11,7 @@ The SDK is available for download [on our website][parse-download-link] or our [
 You can build the library from Visual Studio 2013+ or Xamarin IDE. You can also build the library using the command line:
 
 ```batch
-# In Windows:
+:: In Windows:
 MSBuild Parse.sln
 ```
 
@@ -36,10 +36,11 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 ```
 
- [appveyor-link]: https://ci.appveyor.com/api/projects/status/ixidci5xsd9bcb4x/branch/master?svg=true
+ [appveyor-link]: https://ci.appveyor.com/project/hallucinogen/parse-sdk-dotnet
+ [appveyor-svg]: https://ci.appveyor.com/api/projects/status/ri5jqgkv9hfkcrfl?svg=true
  [contributing]: https://github.com/ParsePlatform/Parse-SDK-dotNET/blob/master/CONTRIBUTING.md
  [coverall-link]: https://coveralls.io/github/ParsePlatform/Parse-SDK-dotNET?branch=master
- [coverall-svg]: https://coveralls.io/repos/ParsePlatform/Parse-SDK-dotNET/badge.svg?branch=master&service=github&t=Hh9XwS
+ [coverall-svg]: https://coveralls.io/repos/ParsePlatform/Parse-SDK-dotNET/badge.svg?branch=master
  [license-svg]: https://img.shields.io/badge/license-BSD-lightgrey.svg
  [license-link]: https://github.com/ParsePlatform/Parse-SDK-dotNET/blob/master/LICENSE
  [nuget-link]: http://nuget.org/packages/parse
