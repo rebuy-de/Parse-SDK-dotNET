@@ -15,7 +15,7 @@ namespace Parse {
   /// An <see cref="IntentService"/> to handle push notification payload in background job.
   /// </summary>
   [Register("parse.ParsePushService")]
-  public sealed class ParsePushService : IntentService {
+  public class ParsePushService : IntentService {
     private const int IntentServiceHandlerTimeout = 10000;
 
     /// <summary>
@@ -32,7 +32,8 @@ namespace Parse {
             break;
           case ParsePushBroadcastReceiver.ActionGcmReceive:
             if (ManifestInfo.HasPermissionForGCM()) {
-              ParsePush.parsePushNotificationReceived.Invoke(ParseInstallation.CurrentInstallation, new ParsePushNotificationEventArgs(ParsePush.PushJson(intent)));
+						HandlePush(ParseInstallation.CurrentInstallation, new ParsePushNotificationEventArgs(ParsePush.PushJson(intent)));
+              // ParsePush.parsePushNotificationReceived.Invoke(ParseInstallation.CurrentInstallation, new ParsePushNotificationEventArgs(ParsePush.PushJson(intent)));
             }
             break;
           default:
@@ -45,6 +46,12 @@ namespace Parse {
         ParseWakefulHelper.CompleteWakefulIntent(intent);
       }
     }
+
+		protected virtual void HandlePush(object sender, ParsePushNotificationEventArgs args)
+		{
+			Log.Debug ("REBUY-PUSH", "push received");
+			ParsePush.DefaultParsePushNotificationReceivedHandler (sender, args);
+		}
   }
 }
 
