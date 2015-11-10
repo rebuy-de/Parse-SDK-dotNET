@@ -59,9 +59,9 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
     <CodesignKey>iPhone Developer</CodesignKey>
-    <AssemblyName>Parse.iOS</AssemblyName>
+    <AssemblyName>Parse</AssemblyName>
     <DefineConstants>MONO;IOS</DefineConstants>
-    <DocumentationFile>bin\Release\Parse.iOS\Parse.iOS.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\Parse.iOS\Parse.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Ad-Hoc|iPhone' ">
     <DebugType>none</DebugType>
