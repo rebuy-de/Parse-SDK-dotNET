@@ -105,5 +105,9 @@ namespace Parse {
           ParseUser.CurrentSessionToken,
           CancellationToken.None);
     }
+
+    public static Task TrackRebuyAppOpenedWithPushHashAsync(string pushHash) {
+        return TrackAppOpenedWithPushHashAsync(pushHash);
+    }
   }
 }

@@ -49,8 +49,8 @@ namespace Parse {
 
 		protected virtual void HandlePush(object sender, ParsePushNotificationEventArgs args)
 		{
-			Log.Debug ("REBUY-PUSH", "push received");
-			ParsePush.DefaultParsePushNotificationReceivedHandler (sender, args);
+			Log.Debug ("REBUY-APP", "push received");
+			ParsePush.RebuyParsePushNotificationReceivedHandler(sender, args);
 		}
   }
 }
