@@ -11,6 +11,12 @@ namespace Parse {
   ///  A utility class for sending and receiving push notifications.
   /// </summary>
   public partial class ParsePush {
+
+    public static int KAUFALARM_REQUEST_CODE { get { return 0x4B415546; } }
+    public static string ACTION_VIEW_PRODUCT { get { return "de.rebuy.ACTION_VIEW_PRODUCT"; } } 
+    public static string EXTRA_PRODUCT_ID { get { return "de.rebuy.EXTRA_PRODUCT_ID"; } }
+    public static string EXTRA_PARSE_PUSH_HASH { get { return "de.rebuy.PARSE_PUSH_HASH"; } }
+
     private object mutex;
     private IPushState state;
 

@@ -22,7 +22,7 @@ namespace Parse {
 
     private static readonly object mutex = new object();
     private static readonly string[] assemblyNames = {
-      "Parse.Phone", "Parse.WinRT", "Parse.NetFx45", "Parse.iOS", "Parse.Android", "Parse.Unity"
+      "Parse"
     };
 
     static ParseClient() {
@@ -53,8 +53,8 @@ namespace Parse {
 
     internal static Uri HostName { get; set; }
     internal static string MasterKey { get; set; }
-    internal static string ApplicationId { get; set; }
-    internal static string WindowsKey { get; set; }
+    internal static string ApplicationId { get { return "76oWKHslAH3dXNLK3WL8cYcde8VrqpNkBGYxDMEn"; } }
+    internal static string WindowsKey { get { return "VnEbjAL77ykquPo4mVOpbbugO0gbdWi9BgY3sy6B"; } }
 
     internal static Version Version {
       get {
@@ -83,8 +83,8 @@ namespace Parse {
     public static void Initialize(string applicationId, string dotnetKey) {
       lock (mutex) {
         HostName = HostName ?? new Uri("https://api.parse.com/");
-        ApplicationId = applicationId;
-        WindowsKey = dotnetKey;
+       // ApplicationId = applicationId;
+       // WindowsKey = dotnetKey;
 
         ParseObject.RegisterSubclass<ParseUser>();
         ParseObject.RegisterSubclass<ParseInstallation>();
