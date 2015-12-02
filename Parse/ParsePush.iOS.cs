@@ -21,7 +21,6 @@ namespace Parse {
     public static void HandlePush(NSDictionary userInfo) {
       UIApplication application = UIApplication.SharedApplication;
       var payload = PushJson(userInfo);
-
       parsePushNotificationReceived.Invoke(ParseInstallation.CurrentInstallation, new ParsePushNotificationEventArgs(payload));
     }
 
@@ -33,7 +32,9 @@ namespace Parse {
     /// <returns>Returns the push payload in <c>userInfo</c> as dictionary. Returns an empty dictionary if <c>userInfo</c>
     /// doesn't contain push payload.</returns>
     public static IDictionary<string, object> PushJson(NSDictionary userInfo) {
+
       IDictionary<string, object> result = new Dictionary<string, object>();
+
 
       foreach (var keyValuePair in userInfo) {
         result.Add(new KeyValuePair<string, object>(keyValuePair.Key.ToString(), keyValuePair.Value));
