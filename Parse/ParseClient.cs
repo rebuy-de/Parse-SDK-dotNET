@@ -53,8 +53,13 @@ namespace Parse {
 
     internal static Uri HostName { get; set; }
     internal static string MasterKey { get; set; }
-    internal static string ApplicationId { get { return "76oWKHslAH3dXNLK3WL8cYcde8VrqpNkBGYxDMEn"; } }
-    internal static string WindowsKey { get { return "VnEbjAL77ykquPo4mVOpbbugO0gbdWi9BgY3sy6B"; } }
+// reBuy Production Keys
+	internal static string ApplicationId { get { return "kLCVihFCnQa0pMAhYnEasHeQAtrygfi8VABPl65o"; } }
+	internal static string WindowsKey { get { return "vYgBKGI9nFZyQzIHQduta5TryLryywTxpunvuvd1"; } }
+
+//  ParseDotNet Testing Keys
+//	internal static string ApplicationId { get { return "76oWKHslAH3dXNLK3WL8cYcde8VrqpNkBGYxDMEn"; } }
+//	internal static string WindowsKey { get { return "VnEbjAL77ykquPo4mVOpbbugO0gbdWi9BgY3sy6B"; } }
 
     internal static Version Version {
       get {
