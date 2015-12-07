@@ -106,8 +106,12 @@ namespace Parse {
           CancellationToken.None);
     }
 
-    public static Task TrackRebuyAppOpenedWithPushHashAsync(string pushHash) {
-        return TrackAppOpenedWithPushHashAsync(pushHash);
+    public async static Task TrackRebuyAppOpenedFromNotificationAsync(string pushHash) {           
+      try {
+          await TrackAppOpenedWithPushHashAsync(pushHash);
+      } catch {
+          System.Diagnostics.Debug.WriteLine(string.Format("{0}: could not track the app open from push notification event", "REBUY-APP"));
+      }
     }
   }
 }

@@ -111,7 +111,7 @@ namespace Parse {
         .SetContentTitle(new Java.Lang.String(title))
         .SetContentText(new Java.Lang.String(alert))
         .SetTicker(new Java.Lang.String(tickerText))
-        .SetSmallIcon(ManifestInfo.PushIconId)
+        .SetSmallIcon(ManifestInfo.IconId)
         .SetContentIntent(pContentIntent)
         .SetAutoCancel(true)
         .SetDefaults(NotificationDefaults.All);
