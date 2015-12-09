@@ -53,8 +53,23 @@ namespace Parse {
 
     internal static Uri HostName { get; set; }
     internal static string MasterKey { get; set; }
-    internal static string ApplicationId { get; set; }
-    internal static string WindowsKey { get; set; }
+    internal static string ApplicationId { 
+        get {
+            return (string) ApplicationSettings["ApplicationId"];
+        }
+        set {
+            ApplicationSettings["ApplicationId"] = value;
+        }
+    }
+
+    internal static string WindowsKey { 
+        get {
+            return (string) ApplicationSettings["WindowsKey"];
+        }
+        set {
+            ApplicationSettings["WindowsKey"] = value;
+        }
+    }
 
     internal static Version Version {
       get {
