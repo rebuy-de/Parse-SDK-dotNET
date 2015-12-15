@@ -13,6 +13,15 @@ using Android.OS;
 
 namespace Parse {
   public partial class ParsePush {
+
+        private static string HandlerAssemblyQualifiedName {
+            get {
+                return (string) ParseClient.ApplicationSettings["ParsePush.Android.PushHandlerKey"];
+            }
+            set {
+                ParseClient.ApplicationSettings["ParsePush.Android.PushHandlerKey"] = value;
+            }
+        }
     /// <summary>
     /// Attach this method to <see cref="ParsePush.ParsePushNotificationReceived"/> to utilize a
     /// default handler for push notification.
@@ -64,70 +73,17 @@ namespace Parse {
       }
     }
 
-    public static void RebuyParsePushNotificationReceivedHandler(object sender, ParsePushNotificationEventArgs args)
-    {
-      IDictionary<string, object> pushData = args.Payload;
-      Context context = Application.Context;
-      const string alert1stLevelKey = "alert";
-      const string alert2ndLevelKey = "loc-args";
-      const string titleKey = "title";
-      const string produktVerfuegbar = "neue Produkt ist verfügbar!";
-      const string productIdKey = "productId"; 
-      const string mainActivityTypeName = "RebuyApp.Android.MainActivity";
-      const string rebuyAppAndroidAssemblyName = "RebuyApp.Android";
-      const string pushHashKey = "push_hash";
-
-      if (pushData == null || (!pushData.ContainsKey(alert1stLevelKey) && !pushData.ContainsKey(titleKey))) {
-        return;
-      }
-
-      var firstLevelDictionary = pushData[alert1stLevelKey] as IDictionary<string, object>;
-      if (firstLevelDictionary == null || !firstLevelDictionary.ContainsKey(alert2ndLevelKey)) {
-          return;
-      }
-
-      var secondLevelList = firstLevelDictionary[alert2ndLevelKey] as IList<object>;
-      if (secondLevelList == null || secondLevelList.Count < 1) {
-          return;
-      }
-
-
-      string pushHash = pushData.ContainsKey(pushHashKey) ? pushData[pushHashKey] as string : string.Empty;
-      string title = pushData.ContainsKey(titleKey) ? pushData[titleKey] as string : produktVerfuegbar;
-      string alert = secondLevelList[0] as string; 
-      string tickerText = ManifestInfo.DisplayName + ": " + produktVerfuegbar;
-
-      string typeAssemblyQualifiedName = string.Format("{0}, {1}", mainActivityTypeName, rebuyAppAndroidAssemblyName);
-      Type mainActivityType = Type.GetType(typeAssemblyQualifiedName);
-      Intent activityIntent = new Intent(context, mainActivityType);
-
-      activityIntent.SetAction(ACTION_VIEW_PRODUCT);
-      activityIntent.PutExtra(EXTRA_PRODUCT_ID, pushData[productIdKey] as string);
-      activityIntent.PutExtra(EXTRA_PARSE_PUSH_HASH, pushHash);
-
-      PendingIntent pContentIntent = PendingIntent.GetActivity(context, KAUFALARM_REQUEST_CODE, activityIntent, PendingIntentFlags.UpdateCurrent);
-
-      NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
-        .SetContentTitle(new Java.Lang.String(title))
-        .SetContentText(new Java.Lang.String(alert))
-        .SetTicker(new Java.Lang.String(tickerText))
-        .SetSmallIcon(ManifestInfo.IconId)
-        .SetContentIntent(pContentIntent)
-        .SetAutoCancel(true)
-        .SetDefaults(NotificationDefaults.All);
-
-      Notification notification = builder.Build();
-      NotificationManager manager = context.GetSystemService(Context.NotificationService) as NotificationManager;
-            int notificationId = KAUFALARM_REQUEST_CODE;
-
-      try {
-        manager.Notify(notificationId, notification);
-      } catch (Exception) {
-        // Some phones throw exception for unapproved vibration.
-        notification.Defaults = NotificationDefaults.Lights | NotificationDefaults.Sound;
-        manager.Notify(notificationId, notification);
-      }
-    }
+        public static void TestPushNotificationHandler(object sender, ParsePushNotificationEventArgs args)
+        {
+            Type type = Type.GetType(HandlerAssemblyQualifiedName);
+            var instance = (IParsePushNotificationHandler) Activator.CreateInstance(type);
+            if (instance != null) {
+                System.Diagnostics.Debug.WriteLine(string.Format("{0}: Created an instance of type {1}", "PARSE-TAG", instance));
+                instance.PushNotificationReceived(sender, args);
+            } else {
+                System.Diagnostics.Debug.WriteLine(string.Format("{0}: Could not create an instance of handler", "PARSE-TAG"));
+            }
+        }
 
     /// <summary>
     /// Helper method to extract the full Push JSON provided to Parse, including any
@@ -160,6 +116,17 @@ namespace Parse {
       }
 
       return result;
+    }
+            
+    public interface IParsePushNotificationHandler
+    {
+        void PushNotificationReceived(object sender, ParsePushNotificationEventArgs args);
+    }
+
+    public static void AddParsePushNotificationHandler(IParsePushNotificationHandler handler)
+    {
+        string fullyQualifiedClassName = handler.GetType().AssemblyQualifiedName;
+        HandlerAssemblyQualifiedName = fullyQualifiedClassName;
     }
   }
 }

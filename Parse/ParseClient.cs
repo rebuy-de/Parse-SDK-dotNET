@@ -102,11 +102,11 @@ namespace Parse {
     /// </param>
     /// <param name="dotnetKey">The .NET API Key provided in the Parse dashboard.
     /// </param>
-    public static void Initialize(string applicationId, string dotnetKey) {
+        public static void Initialize(string applicationId, string dotnetKey) {
       lock (mutex) {
         HostName = HostName ?? new Uri("https://api.parse.com/");
-       // ApplicationId = applicationId;
-       // WindowsKey = dotnetKey;
+        ApplicationId = applicationId;
+        WindowsKey = dotnetKey;
 
         ParseObject.RegisterSubclass<ParseUser>();
         ParseObject.RegisterSubclass<ParseInstallation>();
